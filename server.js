@@ -1,48 +1,39 @@
-/////////////////////////////////////////////
-// Import Our Dependencies
-/////////////////////////////////////////////
 require("dotenv").config();
 const express = require("express");
-const path = require('path');
+const app = express();
+const PORT = 3000;
+const reactViews = require("express-react-views");
 const mongoose = require("mongoose");
-const bodyParser = require("body-parser");
 const methodOverride = require("method-override");
+const controller = require("./controllers/logs");
 
-/////////////////////////////////////////////////
-// Create our Express Application Object
-/////////////////////////////////////////////////
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'jsx');
-app.engine('jsx', require('express-react-views').createEngine());
+// CONNECTION TO DATABASE (MongoDB)
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
 
-/////////////////////////////////////////////////////
-// Middleware
-/////////////////////////////////////////////////////
-// app.use(morgan('tiny')); // logging
-app.use(methodOverride("_method")); // override for put and delete requests from forms
-app.use(express.urlencoded({ extended: true })); // parses data sent in the body to make it usable in our app
-app.use(express.static("public")); // serves files from public statically
+mongoose.connection.once("open", () => {
+  console.log("Connected to mongoDB");
+});
 
-////////////////////////////////////////////
-// Routes
-////////////////////////////////////////////
-app.get('/logs/new', (req, res) => {
-    res.render('New');
-  });
+// SET UP ENGINE
+app.set("view engine", "jsx");
+app.engine("jsx", reactViews.createEngine());
 
-  app.post('/logs', (req, res) => {
-    // Process the submitted form data
-    const title = req.body.title;
-    const entry = req.body.entry;
-    const shipIsBroken = req.body.shipIsBroken === 'on'; // Checkbox value will be 'on' if checked
-  
+// MIDDLEWARE
+app.use((req, res, next) => {
+  console.log("Middleware is running for all routes");
+  next();
+});
+app.use(express.urlencoded({ extended: false }));
+app.use(methodOverride("_method"));
+app.use(express.static("public"));
 
-// Log
-const logsRoutes = require("./controllers/logs");
-app.use("/logs", logsRoutes);
+// ROUTES
+app.use("/logs", controller);
 
-//////////////////////////////////////////////
-// Server Listener
-//////////////////////////////////////////////
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Now listening on port ${PORT}`));
+// LISTENING ON PORT
+app.listen(PORT, (req, res) => {
+  console.log(`Listening on port ${PORT}`);
+});
